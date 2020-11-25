@@ -36,11 +36,26 @@ public class ExchangeReceiverApp {
     Connection connection = factory.newConnection();
     Channel channel = connection.createChannel();
     String queueName = channel.queueDeclare().getQueue();
-    System.out.println("My queue name: " + queueName);
 
     while (true) {
       printStartMessage();
+
       BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+      String langSign = reader.readLine().trim().toUpperCase();
+      if (!"UNBIND".equals(langSign)) {
+        if (!"BIND".equals(langSign)) {
+          System.out.println("Введена неверная команда! Повторите попытку.");
+          continue;
+        }
+      }
+
+      System.out.println(
+          "Введите цифру соответвующую языку программирования подписки, а затем выберете раздел");
+      for (int i = 0; i < PROGRAMMING_LANGUAGE.size(); i++) {
+        int k = i + 1;
+        System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE.get(i));
+      }
+
       String langIndex = reader.readLine().trim();
       String lang = PROGRAMMING_LANGUAGE.get(Integer.parseInt(langIndex) - 1);
       if ("all".equals(lang)) {
@@ -57,41 +72,43 @@ public class ExchangeReceiverApp {
       }
       StringBuilder sb = new StringBuilder();
       sb.append("programming.").append(section).append(".").append(lang);
-
-      createBind(queueName, channel, sb.toString());
+      if ("UNBIND".equals(langSign)) {
+        udBind(queueName, channel, sb.toString());
+      } else if ("BIND".equals(langSign)) {
+        createBind(queueName, channel, sb.toString());
+      }
     }
   }
 
   private static void createBind(String queueName, Channel channel, String section) {
-    new Thread(new Runnable() {
-      @Override
-      public void run() {
-        try {
-          channel.queueBind(queueName, EXCHANGE_NAME, section);
+    new Thread(() -> {
+      try {
+        channel.queueBind(queueName, EXCHANGE_NAME, section);
 
-          System.out.println(" [*] Вы подписаны на канал " + section);
+        System.out.println(" [*] Вы подписаны на канал " + section);
 
-          DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            MyMessage mm = SerializationUtils.deserialize(delivery.getBody());
-            System.out.println(" [x] Received '" + mm.getMsg() + "'");
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+          MyMessage mm = SerializationUtils.deserialize(delivery.getBody());
+          List<String> article = mm.getArticleContent();
+          System.out.println(" [x] Received :");
+          article.forEach(System.out::println);
           printStartMessage();
-          };
-          channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
-          });
-          //printStartMessage();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
+        };
+        channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
+        });
+      } catch (IOException e) {
+        e.printStackTrace();
       }
     }).start();
   }
 
+  private static void udBind(String queueName, Channel channel, String section) throws IOException {
+    channel.queueUnbind(queueName, EXCHANGE_NAME, section);
+    System.out.println(" [*] Вы отписались от канала: " + section);
+  }
+
   private static void printStartMessage() {
-    System.out.println(
-        "Чтобы подписаться на новый канал введите цифру соответвующую языку программирования подписки, а затем выберете раздел");
-    for (int i = 0; i < PROGRAMMING_LANGUAGE.size(); i++) {
-      int k = i + 1;
-      System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE.get(i));
-    }
+    System.out.println("Введите команду BIND, чтобы ПОДПИСАТЬСЯ на новый канал");
+    System.out.println("Введите команду UNBIND, чтобы ОТПИСАТЬСЯ от канала");
   }
 }

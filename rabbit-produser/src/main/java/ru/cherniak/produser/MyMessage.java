@@ -1,17 +1,22 @@
 package ru.cherniak.produser;
 
 import java.io.Serializable;
+import java.util.List;
 
 public class MyMessage implements Serializable {
     private static final long serialVersionUID = -1650136059587331366L;
 
-    private String msg;
+    private List<String> articleContent;
 
-    public String getMsg() {
-        return msg;
+    public MyMessage(List<String> articleContent) {
+        this.articleContent = articleContent;
     }
 
-    public MyMessage(String msg) {
-        this.msg = msg;
+      public List<String> getArticleContent() {
+        return articleContent;
+    }
+
+    public void setArticleContent(List<String> articleContent) {
+        this.articleContent = articleContent;
     }
 }

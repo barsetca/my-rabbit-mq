@@ -6,11 +6,11 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.SerializationUtils;
-
 
 public class ExchangeSenderApp {
 
@@ -38,23 +38,37 @@ public class ExchangeSenderApp {
       }
       BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
       String langIndex = reader.readLine().trim();
-      String lang = PROGRAMMING_LANGUAGE.get(Integer.parseInt(langIndex) - 1);
       System.out.println("Введите цифру соответвующую разделу, выбранного языка статьи");
       for (int i = 0; i < PROGRAMMING_LANGUAGE_SECTION.size(); i++) {
         int k = i + 1;
         System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE_SECTION.get(i));
       }
       String sectionIndex = reader.readLine().trim();
-      String section = PROGRAMMING_LANGUAGE_SECTION.get(Integer.parseInt(sectionIndex) - 1);
+      int indexL;
+      int indexS;
+      try {
+        indexL = Integer.parseInt(langIndex);
+        indexS = Integer.parseInt(sectionIndex);
+        if (indexL < 1 || indexL > PROGRAMMING_LANGUAGE.size()
+            || indexS < 1 || indexL > PROGRAMMING_LANGUAGE_SECTION.size()) {
+          System.out.println("Введена не сущестующая цифра");
+          continue;
+        }
+      } catch (NumberFormatException e) {
+        System.out.println("Введена несуществующая цифра! Попробуйте снова.");
+        continue;
+      }
+      String lang = PROGRAMMING_LANGUAGE.get(indexL - 1);
+      String section = PROGRAMMING_LANGUAGE_SECTION.get(indexS - 1);
       StringBuilder sb = new StringBuilder();
       sb.append("programming.").append(section).append(".").append(lang);
-      System.out.println("ВВедите полный путь файла для публикации");
+      System.out.println("Введите полный путь файла для публикации используя разделитель /");
       String filePath = reader.readLine().trim();
       publishArticle(sb.toString(), filePath);
     }
   }
 
-  private static void publishArticle(String theme, String filePath) throws Exception{
+  private static void publishArticle(String theme, String filePath) throws Exception {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost("localhost");
     try (Connection connection = factory.newConnection();
@@ -62,7 +76,7 @@ public class ExchangeSenderApp {
       channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
       channel.basicPublish(EXCHANGE_NAME, theme, null,
-          SerializationUtils.serialize(new MyMessage(filePath)));
+          SerializationUtils.serialize(new MyMessage(Files.readAllLines(Paths.get(filePath)))));
       System.out.println(" [x] Sent '" + theme + "'");
       System.out.println(" [x] Sent '" + filePath + "'");
     }
