@@ -1,0 +1,3 @@
+# Project exclude paths
+/rabbit-produser/target/
+/rubbit-consumer/target/
