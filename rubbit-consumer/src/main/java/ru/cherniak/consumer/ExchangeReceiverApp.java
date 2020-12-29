@@ -4,18 +4,22 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.SerializationUtils;
+import ru.cherniak.produser.ChooseFasade;
 import ru.cherniak.produser.MyMessage;
 
 public class ExchangeReceiverApp {
 
   private static final String EXCHANGE_NAME = "myTopicExchanger";
-
+  private static final String CHOOSE_PROGRAMMING_LANGUAGE =
+      "Введите цифру соответвующий языку программирования статьи";
+  private static final String CHOOSE_PROGRAMMING_SECTION =
+      "Введите цифру соответвующую разделу, выбранного языка статьи";
+  private static final String ERROR =
+      "Щшибка! Введено несуществующуу значение! Попробуйте снова.";
   private static final List<String> PROGRAMMING_LANGUAGE = new ArrayList<>();
   private static final List<String> PROGRAMMING_LANGUAGE_SECTION = new ArrayList<>();
 
@@ -36,46 +40,30 @@ public class ExchangeReceiverApp {
     Connection connection = factory.newConnection();
     Channel channel = connection.createChannel();
     String queueName = channel.queueDeclare().getQueue();
-
+    ru.cherniak.produser.ChooseFasade chooseFacade = new ChooseFasade();
     while (true) {
       printStartMessage();
-
-      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-      String langSign = reader.readLine().trim().toUpperCase();
+      String langSign = chooseFacade.readStringFromConsole();
       if (!"UNBIND".equals(langSign)) {
         if (!"BIND".equals(langSign)) {
-          System.out.println("Введена неверная команда! Повторите попытку.");
+          System.out.println(ERROR);
           continue;
         }
       }
-
-      System.out.println(
-          "Введите цифру соответвующую языку программирования подписки, а затем выберете раздел");
-      for (int i = 0; i < PROGRAMMING_LANGUAGE.size(); i++) {
-        int k = i + 1;
-        System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE.get(i));
-      }
-
-      String langIndex = reader.readLine().trim();
+      chooseFacade.sendMessageToConsole(CHOOSE_PROGRAMMING_LANGUAGE, PROGRAMMING_LANGUAGE);
+      String langIndex = chooseFacade.readStringFromConsole();
       String lang = PROGRAMMING_LANGUAGE.get(Integer.parseInt(langIndex) - 1);
-      if ("all".equals(lang)) {
-        System.out.println("Введите цифру соответвующую разделу, выбранного языка статьи");
-      }
-      for (int i = 0; i < PROGRAMMING_LANGUAGE_SECTION.size(); i++) {
-        int k = i + 1;
-        System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE_SECTION.get(i));
-      }
-      String sectionIndex = reader.readLine().trim();
+      chooseFacade.sendMessageToConsole(CHOOSE_PROGRAMMING_SECTION, PROGRAMMING_LANGUAGE_SECTION);
+      String sectionIndex = chooseFacade.readStringFromConsole();
       String section = PROGRAMMING_LANGUAGE_SECTION.get(Integer.parseInt(sectionIndex) - 1);
       if ("all".equals(section)) {
         section = "#";
       }
-      StringBuilder sb = new StringBuilder();
-      sb.append("programming.").append(section).append(".").append(lang);
+      String theme = getTheme(section, lang);
       if ("UNBIND".equals(langSign)) {
-        udBind(queueName, channel, sb.toString());
-      } else if ("BIND".equals(langSign)) {
-        createBind(queueName, channel, sb.toString());
+        udBind(queueName, channel, theme);
+      } else {
+        createBind(queueName, channel, theme);
       }
     }
   }
@@ -110,5 +98,11 @@ public class ExchangeReceiverApp {
   private static void printStartMessage() {
     System.out.println("Введите команду BIND, чтобы ПОДПИСАТЬСЯ на новый канал");
     System.out.println("Введите команду UNBIND, чтобы ОТПИСАТЬСЯ от канала");
+  }
+
+  public static String getTheme(String section, String lang) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("programming.").append(section).append(".").append(lang);
+    return sb.toString();
   }
 }

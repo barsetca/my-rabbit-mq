@@ -4,8 +4,6 @@ import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -15,7 +13,12 @@ import org.apache.commons.lang3.SerializationUtils;
 public class ExchangeSenderApp {
 
   private static final String EXCHANGE_NAME = "myTopicExchanger";
-
+  private static final String CHOOSE_PROGRAMMING_LANGUAGE =
+      "Введите цифру соответвующий языку программирования статьи";
+  private static final String CHOOSE_PROGRAMMING_SECTION =
+      "Введите цифру соответвующую разделу, выбранного языка статьи";
+  private static final String ERROR =
+      "Щшибка! Введена несуществующая цифра! Попробуйте снова.";
   private static final List<String> PROGRAMMING_LANGUAGE = new ArrayList<>();
   private static final List<String> PROGRAMMING_LANGUAGE_SECTION = new ArrayList<>();
 
@@ -30,41 +33,31 @@ public class ExchangeSenderApp {
   }
 
   public static void main(String[] argv) throws Exception {
+    ChooseFasade chooseFacade = new ChooseFasade();
     while (true) {
-      System.out.println("Введите цифру соответвующий языку программирования статьи");
-      for (int i = 0; i < PROGRAMMING_LANGUAGE.size(); i++) {
-        int k = i + 1;
-        System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE.get(i));
-      }
-      BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-      String langIndex = reader.readLine().trim();
-      System.out.println("Введите цифру соответвующую разделу, выбранного языка статьи");
-      for (int i = 0; i < PROGRAMMING_LANGUAGE_SECTION.size(); i++) {
-        int k = i + 1;
-        System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE_SECTION.get(i));
-      }
-      String sectionIndex = reader.readLine().trim();
+      chooseFacade.sendMessageToConsole(CHOOSE_PROGRAMMING_LANGUAGE, PROGRAMMING_LANGUAGE);
+      String langIndex = chooseFacade.readStringFromConsole();
+      chooseFacade.sendMessageToConsole(CHOOSE_PROGRAMMING_SECTION, PROGRAMMING_LANGUAGE_SECTION);
+      String sectionIndex = chooseFacade.readStringFromConsole();
       int indexL;
       int indexS;
       try {
         indexL = Integer.parseInt(langIndex);
         indexS = Integer.parseInt(sectionIndex);
-        if (indexL < 1 || indexL > PROGRAMMING_LANGUAGE.size()
-            || indexS < 1 || indexL > PROGRAMMING_LANGUAGE_SECTION.size()) {
-          System.out.println("Введена не сущестующая цифра");
+        if (
+            chooseFacade.isOutOfBounds(
+                indexL, indexS, PROGRAMMING_LANGUAGE.size(), PROGRAMMING_LANGUAGE_SECTION.size())
+        ) {
           continue;
         }
       } catch (NumberFormatException e) {
-        System.out.println("Введена несуществующая цифра! Попробуйте снова.");
+        System.out.println(ERROR);
         continue;
       }
-      String lang = PROGRAMMING_LANGUAGE.get(indexL - 1);
-      String section = PROGRAMMING_LANGUAGE_SECTION.get(indexS - 1);
-      StringBuilder sb = new StringBuilder();
-      sb.append("programming.").append(section).append(".").append(lang);
+      String theme = getTheme(indexL, indexS);
       System.out.println("Введите полный путь файла для публикации используя разделитель /");
-      String filePath = reader.readLine().trim();
-      publishArticle(sb.toString(), filePath);
+      String filePath = chooseFacade.readStringFromConsole();
+      publishArticle(theme, filePath);
     }
   }
 
@@ -80,5 +73,13 @@ public class ExchangeSenderApp {
       System.out.println(" [x] Sent '" + theme + "'");
       System.out.println(" [x] Sent '" + filePath + "'");
     }
+  }
+
+  public static String getTheme(int indexL, int indexS) {
+    String lang = PROGRAMMING_LANGUAGE.get(indexL - 1);
+    String section = PROGRAMMING_LANGUAGE_SECTION.get(indexS - 1);
+    StringBuilder sb = new StringBuilder();
+    sb.append("programming.").append(section).append(".").append(lang);
+    return sb.toString();
   }
 }
