@@ -1,5 +1,7 @@
 package ru.cherniak.produser;
 
+import static ru.cherniak.produser.UtilCommon.*;
+
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -12,13 +14,6 @@ import org.apache.commons.lang3.SerializationUtils;
 
 public class ExchangeSenderApp {
 
-  private static final String EXCHANGE_NAME = "myTopicExchanger";
-  private static final String CHOOSE_PROGRAMMING_LANGUAGE =
-      "Введите цифру соответвующий языку программирования статьи";
-  private static final String CHOOSE_PROGRAMMING_SECTION =
-      "Введите цифру соответвующую разделу, выбранного языка статьи";
-  private static final String ERROR =
-      "Щшибка! Введена несуществующая цифра! Попробуйте снова.";
   private static final List<String> PROGRAMMING_LANGUAGE = new ArrayList<>();
   private static final List<String> PROGRAMMING_LANGUAGE_SECTION = new ArrayList<>();
 
@@ -39,14 +34,14 @@ public class ExchangeSenderApp {
       String langIndex = chooseFacade.readStringFromConsole();
       chooseFacade.sendMessageToConsole(CHOOSE_PROGRAMMING_SECTION, PROGRAMMING_LANGUAGE_SECTION);
       String sectionIndex = chooseFacade.readStringFromConsole();
-      int indexL;
-      int indexS;
+      int indexLanguage;
+      int indexSection;
       try {
-        indexL = Integer.parseInt(langIndex);
-        indexS = Integer.parseInt(sectionIndex);
+        indexLanguage = Integer.parseInt(langIndex);
+        indexSection = Integer.parseInt(sectionIndex);
         if (
             chooseFacade.isOutOfBounds(
-                indexL, indexS, PROGRAMMING_LANGUAGE.size(), PROGRAMMING_LANGUAGE_SECTION.size())
+                indexLanguage, indexSection, PROGRAMMING_LANGUAGE.size(), PROGRAMMING_LANGUAGE_SECTION.size())
         ) {
           continue;
         }
@@ -54,14 +49,14 @@ public class ExchangeSenderApp {
         System.out.println(ERROR);
         continue;
       }
-      String theme = getTheme(indexL, indexS);
+      String theme = getTheme(indexLanguage, indexSection);
       System.out.println("Введите полный путь файла для публикации используя разделитель /");
-      String filePath = chooseFacade.readStringFromConsole();
-      publishArticle(theme, filePath);
+      String filePublisherPath = chooseFacade.readStringFromConsole();
+      publishArticle(theme, filePublisherPath);
     }
   }
 
-  private static void publishArticle(String theme, String filePath) throws Exception {
+  private static void publishArticle(String theme, String filePublisherPath) throws Exception {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost("localhost");
     try (Connection connection = factory.newConnection();
@@ -69,15 +64,15 @@ public class ExchangeSenderApp {
       channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
       channel.basicPublish(EXCHANGE_NAME, theme, null,
-          SerializationUtils.serialize(new MyMessage(Files.readAllLines(Paths.get(filePath)))));
+          SerializationUtils.serialize(new MyMessage(Files.readAllLines(Paths.get(filePublisherPath)))));
       System.out.println(" [x] Sent '" + theme + "'");
-      System.out.println(" [x] Sent '" + filePath + "'");
+      System.out.println(" [x] Sent '" + filePublisherPath + "'");
     }
   }
 
-  public static String getTheme(int indexL, int indexS) {
-    String lang = PROGRAMMING_LANGUAGE.get(indexL - 1);
-    String section = PROGRAMMING_LANGUAGE_SECTION.get(indexS - 1);
+  public static String getTheme(int indexLanguage, int indexSection) {
+    String lang = PROGRAMMING_LANGUAGE.get(indexLanguage - 1);
+    String section = PROGRAMMING_LANGUAGE_SECTION.get(indexSection - 1);
     StringBuilder sb = new StringBuilder();
     sb.append("programming.").append(section).append(".").append(lang);
     return sb.toString();

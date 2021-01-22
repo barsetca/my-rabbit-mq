@@ -1,5 +1,10 @@
 package ru.cherniak.consumer;
 
+import static ru.cherniak.produser.UtilCommon.CHOOSE_PROGRAMMING_LANGUAGE;
+import static ru.cherniak.produser.UtilCommon.CHOOSE_PROGRAMMING_SECTION;
+import static ru.cherniak.produser.UtilCommon.ERROR;
+import static ru.cherniak.produser.UtilCommon.EXCHANGE_NAME;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -13,13 +18,6 @@ import ru.cherniak.produser.MyMessage;
 
 public class ExchangeReceiverApp {
 
-  private static final String EXCHANGE_NAME = "myTopicExchanger";
-  private static final String CHOOSE_PROGRAMMING_LANGUAGE =
-      "Введите цифру соответвующий языку программирования статьи";
-  private static final String CHOOSE_PROGRAMMING_SECTION =
-      "Введите цифру соответвующую разделу, выбранного языка статьи";
-  private static final String ERROR =
-      "Щшибка! Введено несуществующуу значение! Попробуйте снова.";
   private static final List<String> PROGRAMMING_LANGUAGE = new ArrayList<>();
   private static final List<String> PROGRAMMING_LANGUAGE_SECTION = new ArrayList<>();
 
