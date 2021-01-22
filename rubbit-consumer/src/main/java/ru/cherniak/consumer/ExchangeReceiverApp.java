@@ -38,16 +38,10 @@ public class ExchangeReceiverApp {
     String queueName = channel.queueDeclare().getQueue();
 
     while (true) {
-      printStartMessage();
-
+      System.out.println("Введите команду BIND, чтобы ПОДПИСАТЬСЯ на новый канал");
+      System.out.println("Введите команду UNBIND, чтобы ОТПИСАТЬСЯ от канала");
       BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
       String langSign = reader.readLine().trim().toUpperCase();
-      if (!"UNBIND".equals(langSign)) {
-        if (!"BIND".equals(langSign)) {
-          System.out.println("Введена неверная команда! Повторите попытку.");
-          continue;
-        }
-      }
 
       System.out.println(
           "Введите цифру соответвующую языку программирования подписки, а затем выберете раздел");
@@ -73,7 +67,8 @@ public class ExchangeReceiverApp {
       StringBuilder sb = new StringBuilder();
       sb.append("programming.").append(section).append(".").append(lang);
       if ("UNBIND".equals(langSign)) {
-        udBind(queueName, channel, sb.toString());
+        channel.queueUnbind(queueName, EXCHANGE_NAME, section);
+        System.out.println(" [*] Вы отписались от канала: " + section);
       } else if ("BIND".equals(langSign)) {
         createBind(queueName, channel, sb.toString());
       }
@@ -92,7 +87,8 @@ public class ExchangeReceiverApp {
           List<String> article = mm.getArticleContent();
           System.out.println(" [x] Received :");
           article.forEach(System.out::println);
-          printStartMessage();
+          System.out.println("Введите команду BIND, чтобы ПОДПИСАТЬСЯ на новый канал");
+          System.out.println("Введите команду UNBIND, чтобы ОТПИСАТЬСЯ от канала");
         };
         channel.basicConsume(queueName, true, deliverCallback, consumerTag -> {
         });
@@ -102,13 +98,4 @@ public class ExchangeReceiverApp {
     }).start();
   }
 
-  private static void udBind(String queueName, Channel channel, String section) throws IOException {
-    channel.queueUnbind(queueName, EXCHANGE_NAME, section);
-    System.out.println(" [*] Вы отписались от канала: " + section);
-  }
-
-  private static void printStartMessage() {
-    System.out.println("Введите команду BIND, чтобы ПОДПИСАТЬСЯ на новый канал");
-    System.out.println("Введите команду UNBIND, чтобы ОТПИСАТЬСЯ от канала");
-  }
 }

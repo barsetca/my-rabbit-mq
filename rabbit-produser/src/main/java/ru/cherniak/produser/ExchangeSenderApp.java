@@ -44,19 +44,13 @@ public class ExchangeSenderApp {
         System.out.printf("%d - %s%n", k, PROGRAMMING_LANGUAGE_SECTION.get(i));
       }
       String sectionIndex = reader.readLine().trim();
-      int indexL;
-      int indexS;
+      int indexL = 1;
+      int indexS = 1;
       try {
         indexL = Integer.parseInt(langIndex);
         indexS = Integer.parseInt(sectionIndex);
-        if (indexL < 1 || indexL > PROGRAMMING_LANGUAGE.size()
-            || indexS < 1 || indexL > PROGRAMMING_LANGUAGE_SECTION.size()) {
-          System.out.println("Введена не сущестующая цифра");
-          continue;
-        }
       } catch (NumberFormatException e) {
-        System.out.println("Введена несуществующая цифра! Попробуйте снова.");
-        continue;
+        e.printStackTrace();
       }
       String lang = PROGRAMMING_LANGUAGE.get(indexL - 1);
       String section = PROGRAMMING_LANGUAGE_SECTION.get(indexS - 1);
@@ -64,21 +58,18 @@ public class ExchangeSenderApp {
       sb.append("programming.").append(section).append(".").append(lang);
       System.out.println("Введите полный путь файла для публикации используя разделитель /");
       String filePath = reader.readLine().trim();
-      publishArticle(sb.toString(), filePath);
-    }
-  }
+      String theme = sb.toString();
+      ConnectionFactory factory = new ConnectionFactory();
+      factory.setHost("localhost");
+      try (Connection connection = factory.newConnection();
+          Channel channel = connection.createChannel()) {
+        channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
 
-  private static void publishArticle(String theme, String filePath) throws Exception {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setHost("localhost");
-    try (Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel()) {
-      channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.TOPIC);
-
-      channel.basicPublish(EXCHANGE_NAME, theme, null,
-          SerializationUtils.serialize(new MyMessage(Files.readAllLines(Paths.get(filePath)))));
-      System.out.println(" [x] Sent '" + theme + "'");
-      System.out.println(" [x] Sent '" + filePath + "'");
+        channel.basicPublish(EXCHANGE_NAME, theme, null,
+            SerializationUtils.serialize(new MyMessage(Files.readAllLines(Paths.get(filePath)))));
+        System.out.println(" [x] Sent '" + theme + "'");
+        System.out.println(" [x] Sent '" + filePath + "'");
+      }
     }
   }
 }
